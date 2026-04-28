@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+    <p>Hello, 
+    {% if name %}
+        {{name}}.
+    {% else %}
+        World!
+    {% endif%}</p>
+    
+    <p>This is the app for SIT323 HD tasks!</p>
+    
+    <p>{{ backend_message }}</p>
+    
+    <p>The base code used for this app was adapted from source: <a href="//youtu.be/gmuTjeQUbTM?si=ebKRqIdd47BmrT75">freeCodeCamp YouTube Channel</a> accessed 25/04/2026.</p>
+
+{% endblock %}
