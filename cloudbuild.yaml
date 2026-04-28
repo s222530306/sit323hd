@@ -1,92 +1,36 @@
-availableSecrets:
-  secretManager:
-    - versionName: projects/1037755509890/secrets/DOCKER_USERNAME/versions/latest
-      env: DOCKER_USERNAME
-    - versionName: projects/1037755509890/secrets/DOCKER_PASSWORD/versions/latest
-      env: DOCKER_PASSWORD
-
 steps:
 
-  # =========================
-  # Docker Login
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME', 'DOCKER_PASSWORD']
-    args:
-      - '-c'
-      - |
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+# Build backend
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - -t
+    - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/backend:latest
+    - ./backend
 
-  # =========================
-  # Build + Push Backend
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME']
-    args:
-      - '-c'
-      - |
-        docker build -t docker.io/$DOCKER_USERNAME/backend:latest ./backend
-        docker push docker.io/$DOCKER_USERNAME/backend:latest
+# Push backend
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - push
+    - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/backend:latest
 
-  # =========================
-  # Build + Push Frontend
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME']
-    args:
-      - '-c'
-      - |
-        docker build -t docker.io/$DOCKER_USERNAME/frontend:latest ./frontend
-        docker push docker.io/$DOCKER_USERNAME/frontend:latest
+# Build frontend
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - -t
+    - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/frontend:latest
+    - ./frontend
 
-  # =========================
-  # Create VPC (global resource)
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud compute networks create hd-vpc \
-          --subnet-mode=auto || echo "VPC already exists"
-
-  # =========================
-  # Create GKE Cluster (regional)
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud container clusters create sit323-hd-cluster-1 \
-          --region=australia-southeast1 \
-          --network=hd-vpc \
-          --num-nodes=1 || echo "Cluster already exists"
-
-  # =========================
-  # Deploy to GKE
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
-        gcloud container clusters get-credentials sit323-hd-cluster-1 \
-          --region=australia-southeast1
-
-        kubectl apply -f k8s/
-        kubectl get nodes
-        kubectl get pods
-        kubectl get services
+# Push frontend
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - push
+    - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/frontend:latest
 
 images:
-  - "docker.io/$DOCKER_USERNAME/backend:latest"
-  - "docker.io/$DOCKER_USERNAME/frontend:latest"
+  - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/backend:latest
+  - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/frontend:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY
