@@ -33,4 +33,4 @@ images:
   - australia-southeast1-docker.pkg.dev/sit323-26t1-parfitt-ca-44e3bf5/my-repo/frontend:latest
 
 options:
-  logging: CLOUD_LOGGING_ONLY
+  logging: NONE
