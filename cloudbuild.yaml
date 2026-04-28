@@ -87,3 +87,6 @@ steps:
 images:
   - "docker.io/$DOCKER_USERNAME/backend:latest"
   - "docker.io/$DOCKER_USERNAME/frontend:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
