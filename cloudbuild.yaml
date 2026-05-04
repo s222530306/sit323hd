@@ -5,84 +5,113 @@ availableSecrets:
     - versionName: projects/1037755509890/secrets/DOCKER_PASSWORD/versions/latest
       env: _DOCKER_PASSWORD
 
+substitutions:
+  _BUCKET_NAME: hd-bucket
+  _LOCATION: australia-southeast1
+
 steps:
 
-  # =========================
-  # Docker Login
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
-    args:
-      - '-c'
-      - |
-        echo "$_DOCKER_PASSWORD" | docker login -u "$_DOCKER_USERNAME" --password-stdin
+# =========================
+# Create GCS bucket if not exists
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: 'Create GCS bucket if not exists'
+  entrypoint: 'bash'
+  args:
+    - '-euo'
+    - 'pipefail'
+    - '-c'
+    - |
+      BUCKET="gs://${_BUCKET_NAME}"
 
-  # =========================
-  # Build + Push Backend
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['_DOCKER_USERNAME']
-    args:
-      - '-c'
-      - |
-        docker build -t docker.io/$_DOCKER_USERNAME/backend:latest ./backend
-        docker push docker.io/$_DOCKER_USERNAME/backend:latest
+      echo "Checking if bucket exists: ${BUCKET}"
+      if gcloud storage buckets describe "${BUCKET}" >/dev/null 2>&1; then
+        echo "Bucket already exists. Skipping creation."
+      else
+        echo "Creating bucket: ${BUCKET}"
+        gcloud storage buckets create "${BUCKET}" \
+          --location="${_LOCATION}" \
+          --uniform-bucket-level-access \
+          --project="${PROJECT_ID}"
+        echo "Bucket created successfully."
+      fi
 
-  # =========================
-  # Build + Push Frontend
-  # =========================
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    secretEnv: ['_DOCKER_USERNAME']
-    args:
-      - '-c'
-      - |
-        docker build -t docker.io/$_DOCKER_USERNAME/frontend:latest ./frontend
-        docker push docker.io/$_DOCKER_USERNAME/frontend:latest
+# =========================
+# Docker Login
+# =========================
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
+  args:
+    - '-c'
+    - |
+      echo "$_DOCKER_PASSWORD" | docker login -u "$_DOCKER_USERNAME" --password-stdin
 
-  # =========================
-  # Create VPC (global resource)
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud compute networks create hd-vpc \
-          --subnet-mode=auto || echo "VPC already exists"
+# =========================
+# Build + Push Backend
+# =========================
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  secretEnv: ['_DOCKER_USERNAME']
+  args:
+    - '-c'
+    - |
+      docker build -t docker.io/$_DOCKER_USERNAME/backend:latest ./backend
+      docker push docker.io/$_DOCKER_USERNAME/backend:latest
 
-  # =========================
-  # Create GKE Cluster (regional)
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud container clusters create sit323-hd-cluster-1 \
-          --region=australia-southeast1 \
-          --network=hd-vpc \
-          --num-nodes=1 || echo "Cluster already exists"
+# =========================
+# Build + Push Frontend
+# =========================
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  secretEnv: ['_DOCKER_USERNAME']
+  args:
+    - '-c'
+    - |
+      docker build -t docker.io/$_DOCKER_USERNAME/frontend:latest ./frontend
+      docker push docker.io/$_DOCKER_USERNAME/frontend:latest
 
-  # =========================
-  # Deploy to GKE
-  # =========================
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+# =========================
+# Create VPC
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      gcloud compute networks create hd-vpc \
+        --subnet-mode=auto || echo "VPC already exists"
 
-        gcloud container clusters get-credentials sit323-hd-cluster-1 \
-          --region=australia-southeast1
+# =========================
+# Create GKE Cluster
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      gcloud container clusters create sit323-hd-cluster-1 \
+        --region=australia-southeast1 \
+        --network=hd-vpc \
+        --num-nodes=1 || echo "Cluster already exists"
 
-        kubectl apply -f k8s/
-        kubectl get nodes
-        kubectl get pods
-        kubectl get services
+# =========================
+# Deploy to GKE
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
+      gcloud container clusters get-credentials sit323-hd-cluster-1 \
+        --region=australia-southeast1
+
+      kubectl apply -f k8s/
+      kubectl get nodes
+      kubectl get pods
+      kubectl get services
 
 images:
   - "docker.io/$_DOCKER_USERNAME/backend:latest"
