@@ -18,24 +18,23 @@ steps:
   id: 'Create GCS bucket if not exists'
   entrypoint: 'bash'
   args:
-    - '-euo'
-    - 'pipefail'
-    - '-c'
-    - |
-      BUCKET="gs://${_BUCKET_NAME}"
+  - '-euo'
+  - 'pipefail'
+  - '-c'
+  - |
+    BUCKET="gs://$${_BUCKET_NAME}"
 
-      echo "Checking if bucket exists: ${BUCKET}"
-      if gcloud storage buckets describe "${BUCKET}" >/dev/null 2>&1; then
-        echo "Bucket already exists. Skipping creation."
-      else
-        echo "Creating bucket: ${BUCKET}"
-        gcloud storage buckets create "${BUCKET}" \
-          --location="${_LOCATION}" \
-          --uniform-bucket-level-access \
-          --project="${PROJECT_ID}"
-        echo "Bucket created successfully."
-      fi
-
+    echo "Checking if bucket exists: $${BUCKET}"
+    if gcloud storage buckets describe "$${BUCKET}" >/dev/null 2>&1; then
+      echo "Bucket already exists. Skipping creation."
+    else
+      echo "Creating bucket: $${BUCKET}"
+      gcloud storage buckets create "$${BUCKET}" \
+        --location="$${_LOCATION}" \
+        --uniform-bucket-level-access \
+        --project="$${PROJECT_ID}"
+      echo "Bucket created successfully."
+    fi
 # =========================
 # Docker Login
 # =========================
