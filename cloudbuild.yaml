@@ -1,9 +1,9 @@
 availableSecrets:
   secretManager:
     - versionName: projects/1037755509890/secrets/DOCKER_USERNAME/versions/latest
-      env: DOCKER_USERNAME
+      env: _DOCKER_USERNAME
     - versionName: projects/1037755509890/secrets/DOCKER_PASSWORD/versions/latest
-      env: DOCKER_PASSWORD
+      env: _DOCKER_PASSWORD
 
 steps:
 
@@ -12,35 +12,35 @@ steps:
   # =========================
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME', 'DOCKER_PASSWORD']
+    secretEnv: ['_DOCKER_USERNAME', '_DOCKER_PASSWORD']
     args:
       - '-c'
       - |
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        echo "$_DOCKER_PASSWORD" | docker login -u "$_DOCKER_USERNAME" --password-stdin
 
   # =========================
   # Build + Push Backend
   # =========================
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME']
+    secretEnv: ['_DOCKER_USERNAME']
     args:
       - '-c'
       - |
-        docker build -t docker.io/$DOCKER_USERNAME/backend:latest ./backend
-        docker push docker.io/$DOCKER_USERNAME/backend:latest
+        docker build -t docker.io/$_DOCKER_USERNAME/backend:latest ./backend
+        docker push docker.io/$_DOCKER_USERNAME/backend:latest
 
   # =========================
   # Build + Push Frontend
   # =========================
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
-    secretEnv: ['DOCKER_USERNAME']
+    secretEnv: ['_DOCKER_USERNAME']
     args:
       - '-c'
       - |
-        docker build -t docker.io/$DOCKER_USERNAME/frontend:latest ./frontend
-        docker push docker.io/$DOCKER_USERNAME/frontend:latest
+        docker build -t docker.io/$_DOCKER_USERNAME/frontend:latest ./frontend
+        docker push docker.io/$_DOCKER_USERNAME/frontend:latest
 
   # =========================
   # Create VPC (global resource)
@@ -85,8 +85,8 @@ steps:
         kubectl get services
 
 images:
-  - "docker.io/$DOCKER_USERNAME/backend:latest"
-  - "docker.io/$DOCKER_USERNAME/frontend:latest"
+  - "docker.io/$_DOCKER_USERNAME/backend:latest"
+  - "docker.io/$_DOCKER_USERNAME/frontend:latest"
 
 options:
   logging: CLOUD_LOGGING_ONLY
