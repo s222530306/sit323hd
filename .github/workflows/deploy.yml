@@ -46,6 +46,16 @@ jobs:
       uses: google-github-actions/setup-gcloud@v2
 
     # =========================
+    # Create cluster 
+    # =========================
+    - name: Create GKE cluster
+      run: |
+        gcloud container clusters create sit323-hd-cluster-1 \
+          --zone australia-southeast1-a \
+          --num-nodes=1 \
+          --network=hd-vpc
+
+    # =========================
     # Get GKE credentials
     # =========================
     - name: Get GKE credentials
